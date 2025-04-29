@@ -44,13 +44,14 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [Space]
     [SerializeField] private float jumpSpeed = 20f;
     [SerializeField] private float coyoteTime = 0.2f;
+    [SerializeField] private float numberOfJumps = 2f;
     [Range(0f, 1f)]
     [SerializeField] private float jumpSustainGravity = 0.7f;
     [SerializeField] private float gravity = -90f;
     [Space]
     [SerializeField] private float slideStartSpeed = 25f;
     [SerializeField] private float slideEndSpeed = 15f;
-    [SerializeField] private float slideFriction = 0.8f;
+    [SerializeField] private float slideFriction = 0.6f;
     [SerializeField] private float slideSteerAcceleration = 5f;
     [SerializeField] private float slideGravity = -90f;
     [Space]
@@ -77,7 +78,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     private float _timeSinceUngrounded;
     private float _timeSinceJumpRequest;
     private bool _ungroundedDueToJump;
-
+    private float _remainingJumps;
     private Collider[] _uncrouchOverlapResults;
 
     public void Initialize()
@@ -85,6 +86,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         _state.Stance = Stance.Stand;
         _lastState = _state;
         _uncrouchOverlapResults = new Collider[8];
+        _remainingJumps = numberOfJumps;
         motor.CharacterController = this;
     }
 
@@ -158,7 +160,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         {
             _timeSinceUngrounded = 0f;
             _ungroundedDueToJump = false;
-
+            _remainingJumps = numberOfJumps;
             // Snap requested movement direction to the angle of the surface the char is on
             var groundedMovement = motor.GetDirectionTangentToSurface
                 (
@@ -351,7 +353,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         {
             var grounded = motor.GroundingStatus.IsStableOnGround;
             var canCoyoteJump = _timeSinceUngrounded < coyoteTime && !_ungroundedDueToJump;
-            if (grounded || canCoyoteJump)
+            if ((grounded || canCoyoteJump) || _remainingJumps > 0)
             {
                 _requestedJump = false; // Unset jump request
                 _requestedCrouch = false; // Request uncrouch
@@ -364,6 +366,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                 var currentVerticalSpeed = Vector3.Dot(currentVelocity, motor.CharacterUp);
                 var targetVerticalSpeed = Mathf.Max(currentVerticalSpeed, jumpSpeed);
                 currentVelocity += motor.CharacterUp * (targetVerticalSpeed - currentVerticalSpeed);
+                _remainingJumps -= 1;
             }
             else
             {

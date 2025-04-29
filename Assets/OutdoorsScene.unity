@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 2184.4531, g: 2324.498, b: 3472.7578, a: 1}
+  m_IndirectSpecularColor: {r: 2181.9805, g: 2314.6562, b: 3437.4375, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -754,9 +754,9 @@ MonoBehaviour:
   coyoteTime: 0.2
   jumpSustainGravity: 0.7
   gravity: -90
-  slideStartSpeed: 25
+  slideStartSpeed: 30
   slideEndSpeed: 15
-  slideFriction: 0.8
+  slideFriction: 0.6
   slideSteerAcceleration: 5
   slideGravity: -90
   standHeight: 2
