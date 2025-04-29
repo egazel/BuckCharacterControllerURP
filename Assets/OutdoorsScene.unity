@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 2181.9805, g: 2314.6562, b: 3437.4375, a: 1}
+  m_IndirectSpecularColor: {r: 2166.4805, g: 2276.916, b: 3322.7422, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -752,6 +752,7 @@ MonoBehaviour:
   airAcceleration: 70
   jumpSpeed: 20
   coyoteTime: 0.2
+  numberOfJumps: 2
   jumpSustainGravity: 0.7
   gravity: -90
   slideStartSpeed: 30
@@ -759,11 +760,15 @@ MonoBehaviour:
   slideFriction: 0.6
   slideSteerAcceleration: 5
   slideGravity: -90
+  dashDistance: 25
+  dashDuration: 0.3
+  dashCooldown: 1
   standHeight: 2
   crouchHeight: 1
   crouchHeightResponse: 15
   standCameraTargetHeight: 0.9
   crouchCameraTargetHeight: 0.7
+  _isDashing: 0
 --- !u!114 &1205881609
 MonoBehaviour:
   m_ObjectHideFlags: 0

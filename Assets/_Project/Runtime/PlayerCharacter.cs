@@ -24,6 +24,7 @@ public struct CharacterInput
     public Quaternion Rotation;
     public Vector2 Move;
     public bool Jump;
+    public bool Dash;
     public bool JumpSustain;
     public CrouchInput Crouch;
 }
@@ -55,6 +56,10 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [SerializeField] private float slideSteerAcceleration = 5f;
     [SerializeField] private float slideGravity = -90f;
     [Space]
+    [SerializeField] private float dashSpeedMultiplier = 1.8f;
+    [SerializeField] private float dashDuration = .07f;
+    [SerializeField] private float dashCooldown = 1.2f;
+    [Space]
     [SerializeField] private float standHeight = 2f;
     [SerializeField] private float crouchHeight = 1f;
     [SerializeField] private float crouchHeightResponse = 15f;
@@ -79,7 +84,13 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     private float _timeSinceJumpRequest;
     private bool _ungroundedDueToJump;
     private float _remainingJumps;
-    private Collider[] _uncrouchOverlapResults;
+     private Collider[] _uncrouchOverlapResults;
+
+    private bool _requestedDash;
+    private float _dashDuration;
+    private bool _isDashing;
+    private float _wantedDashMult;
+    private float _dashCooldownRemaining;
 
     public void Initialize()
     {
@@ -88,6 +99,8 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         _uncrouchOverlapResults = new Collider[8];
         _remainingJumps = numberOfJumps;
         motor.CharacterController = this;
+        _isDashing = false;
+        _wantedDashMult = 1f;
     }
 
     public void UpdateInput(CharacterInput input)
@@ -122,6 +135,11 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         {
             _requestedCrouchInAir = false;
         }
+
+        if (input.Dash)
+        {
+            _requestedDash = input.Dash;
+        }
     }
 
     public void UpdateBody(float deltaTime)
@@ -155,6 +173,19 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     public void UpdateVelocity(ref Vector3 currentVelocity, float deltaTime)
     {
         _state.Acceleration = Vector3.zero;
+
+        if (_dashCooldownRemaining > 0f)
+        {
+            _dashCooldownRemaining -= deltaTime;
+        }
+
+        if (_requestedDash && !(_dashCooldownRemaining > 0))
+        {
+            _dashDuration = dashDuration;
+            _dashCooldownRemaining = dashCooldown;
+            _isDashing = true;
+            _requestedDash = false;
+        }
 
         if (motor.GroundingStatus.IsStableOnGround) // On the ground
         {
@@ -226,8 +257,20 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                         t: 1f - Mathf.Exp(-response * deltaTime)
                     );
 
-                _state.Acceleration = moveVelocity - currentVelocity;
+                if (!(_state.Stance is Stance.Crouch) && _isDashing && _dashDuration > 0f)
+                {
+                    _wantedDashMult = dashSpeedMultiplier;
+                    _dashDuration -= deltaTime;
+                    motor.ForceUnground(time: 0f);
+                }
+                else
+                {
+                    _wantedDashMult = 1f;
+                    _dashDuration = 0f;
 
+                }
+                moveVelocity *= _wantedDashMult;
+                _state.Acceleration = moveVelocity - currentVelocity;
                 currentVelocity = moveVelocity;
             }
             // Continue sliding
@@ -439,7 +482,8 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                 _state.Stance = Stance.Stand;
             }
         }
-        // Update state to reflect relevawnt motor properties
+
+        // Update state to reflect relevant motor properties
         _state.Grounded = motor.GroundingStatus.IsStableOnGround;
         _state.Velocity = motor.Velocity;
         // Update the _lastState to store the car state snapshot taken at the beginning of this char update
