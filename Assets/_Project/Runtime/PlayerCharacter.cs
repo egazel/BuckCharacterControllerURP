@@ -56,9 +56,9 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [SerializeField] private float slideSteerAcceleration = 5f;
     [SerializeField] private float slideGravity = -90f;
     [Space]
-    [SerializeField] private float dashSpeedMultiplier = 1.8f;
-    [SerializeField] private float dashDuration = .07f;
-    [SerializeField] private float dashCooldown = 1.2f;
+    [SerializeField] private float dashSpeedMultiplier = 2.3f;
+    [SerializeField] private float dashDuration = .1f;
+    [SerializeField] private float dashCooldown = 1f;
     [Space]
     [SerializeField] private float standHeight = 2f;
     [SerializeField] private float crouchHeight = 1f;
@@ -91,6 +91,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     private bool _isDashing;
     private float _wantedDashMult;
     private float _dashCooldownRemaining;
+    private bool _dashedDuringThisJump;
 
     public void Initialize()
     {
@@ -136,7 +137,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             _requestedCrouchInAir = false;
         }
 
-        if (input.Dash)
+        if (_requestedJump || input.Dash)
         {
             _requestedDash = input.Dash;
         }
@@ -185,6 +186,35 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             _dashCooldownRemaining = dashCooldown;
             _isDashing = true;
             _requestedDash = false;
+            _wantedDashMult = dashSpeedMultiplier;
+        }
+
+        // Dash (not when crouching)
+        if (!(_state.Stance is Stance.Crouch) && _isDashing && _dashDuration > 0f && !_dashedDuringThisJump)
+        {
+            _dashDuration -= deltaTime;
+
+            Vector3 dashDir = _requestedMovement.sqrMagnitude > 0f
+                ? Vector3.ProjectOnPlane(_requestedMovement.normalized, motor.CharacterUp).normalized
+                : Vector3.ProjectOnPlane(root.forward, motor.CharacterUp).normalized;
+
+            float dashSpeed = walkSpeed * _wantedDashMult;
+            currentVelocity = dashDir * dashSpeed;
+
+            _state.Acceleration = Vector3.zero;
+
+            // If we are dashing during a jump...
+            if (!motor.GroundingStatus.IsStableOnGround)
+            {
+                // Track it so we only dash once per jump
+                _dashedDuringThisJump = true;
+            }
+            return; // Skip regular movement this frame while dashing
+        }
+        else if (_dashDuration <= 0f)
+        {
+            _isDashing = false;
+            _wantedDashMult = 1f;
         }
 
         if (motor.GroundingStatus.IsStableOnGround) // On the ground
@@ -199,12 +229,20 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                     surfaceNormal: motor.GroundingStatus.GroundNormal
                 ) * _requestedMovement.magnitude;
 
+            var wasInAir = !_lastState.Grounded;
+
+            //  If we just landed...
+            if (wasInAir)
+            {
+                // Reset dash during jump bool
+                _dashedDuringThisJump = false;
+            }
+
             // Start sliding
             {
                 var moving = groundedMovement.sqrMagnitude > 0f;
                 var crouching = _state.Stance is Stance.Crouch;
                 var wasStanding = _lastState.Stance is Stance.Stand;
-                var wasInAir = !_lastState.Grounded;
                 if (moving && crouching && (wasStanding || wasInAir))
                 {
                     _state.Stance = Stance.Slide;
@@ -257,18 +295,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                         t: 1f - Mathf.Exp(-response * deltaTime)
                     );
 
-                if (!(_state.Stance is Stance.Crouch) && _isDashing && _dashDuration > 0f)
-                {
-                    _wantedDashMult = dashSpeedMultiplier;
-                    _dashDuration -= deltaTime;
-                    motor.ForceUnground(time: 0f);
-                }
-                else
-                {
-                    _wantedDashMult = 1f;
-                    _dashDuration = 0f;
 
-                }
                 moveVelocity *= _wantedDashMult;
                 _state.Acceleration = moveVelocity - currentVelocity;
                 currentVelocity = moveVelocity;
@@ -398,6 +425,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             var canCoyoteJump = _timeSinceUngrounded < coyoteTime && !_ungroundedDueToJump;
             if ((grounded || canCoyoteJump) || _remainingJumps > 0)
             {
+                _dashedDuringThisJump = false;
                 _requestedJump = false; // Unset jump request
                 _requestedCrouch = false; // Request uncrouch
                 _requestedCrouchInAir = false;
