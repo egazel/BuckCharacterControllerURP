@@ -35,14 +35,17 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [SerializeField] private Transform root;
     [SerializeField] private Transform cameraTarget;
     [Space]
+    [Header("Walk/Crouch speed")]
     [SerializeField] private float walkSpeed = 20f;
     [SerializeField] private float crouchSpeed = 7f;
     [SerializeField] private float walkResponse = 25f;
     [SerializeField] private float crouchResponse = 20f;
     [Space]
+    [Header("Air control")]
     [SerializeField] private float airSpeed = 15f;
     [SerializeField] private float airAcceleration = 70f;
     [Space]
+    [Header("Jump")]
     [SerializeField] private float jumpSpeed = 20f;
     [SerializeField] private float coyoteTime = 0.2f;
     [SerializeField] private float numberOfJumps = 2f;
@@ -50,17 +53,20 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [SerializeField] private float jumpSustainGravity = 0.7f;
     [SerializeField] private float gravity = -90f;
     [Space]
+    [Header("Slide")]
     [SerializeField] private float slideStartSpeed = 25f;
     [SerializeField] private float slideEndSpeed = 15f;
     [SerializeField] private float slideFriction = 0.4f;
     [SerializeField] private float slideSteerAcceleration = 5f;
     [SerializeField] private float slideGravity = -90f;
     [Space]
+    [Header("Dash")]
     [SerializeField] private float dashBaseSpeed = 20f;
     [SerializeField] private float dashScaleFactor = 1.1f;
     [SerializeField] private float dashDuration = .1f;
     [SerializeField] private float dashCooldown = 1f;
     [Space]
+    [Header("Player height")]
     [SerializeField] private float standHeight = 2f;
     [SerializeField] private float crouchHeight = 1f;
     [SerializeField] private float crouchHeightResponse = 15f;
@@ -85,7 +91,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     private float _timeSinceJumpRequest;
     private bool _ungroundedDueToJump;
     private float _remainingJumps;
-     private Collider[] _uncrouchOverlapResults;
+    private Collider[] _uncrouchOverlapResults;
 
     private bool _requestedDash;
     private float _dashDuration;

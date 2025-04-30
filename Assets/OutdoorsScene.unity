@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 2186.4883, g: 2334.3672, b: 3512.0742, a: 1}
+  m_IndirectSpecularColor: {r: 2178.1543, g: 2369.1836, b: 3700.7031, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -2960,8 +2960,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerCharacter: {fileID: 1205881608}
   playerCamera: {fileID: 1412758490}
-  cameraSpring: {fileID: 0}
-  cameraLean: {fileID: 0}
+  cameraSpring: {fileID: 40887245}
+  cameraLean: {fileID: 2121137749}
   volume: {fileID: 2057451147}
   stanceVignette: {fileID: 23045179}
   groundedTMP: {fileID: 1224677634}

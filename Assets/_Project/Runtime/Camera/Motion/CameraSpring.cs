@@ -11,6 +11,7 @@ public class CameraSpring : MonoBehaviour
     [Space]
     [SerializeField] private float angularDisplacement = 2f;
     [SerializeField] private float linearDisplacement = 0.05f;
+    [SerializeField] private float maxDisplacement = 0.05f;
     private Vector3 _springPosition;
     private Vector3 _springVelocity;
 
@@ -27,7 +28,9 @@ public class CameraSpring : MonoBehaviour
         var relativeSpringPosition = _springPosition - transform.position;
         var springHeight = Vector3.Dot(relativeSpringPosition, up);
         transform.localEulerAngles = new Vector3(-springHeight * angularDisplacement, 0f, 0f);
-        transform.localPosition += relativeSpringPosition * linearDisplacement;
+
+        Vector3 cappedDisplacement = Vector3.ClampMagnitude(relativeSpringPosition, maxDisplacement);
+        transform.localPosition += cappedDisplacement * linearDisplacement;
     }
 
     private void OnDrawGizmos()

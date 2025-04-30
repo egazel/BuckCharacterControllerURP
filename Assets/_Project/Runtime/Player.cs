@@ -8,12 +8,12 @@ public class Player : MonoBehaviour
     [SerializeField] private PlayerCharacter playerCharacter;
     [SerializeField] private PlayerCamera playerCamera;
     [Space]
+    [Header("Animation & Post")]
     [SerializeField] private CameraSpring cameraSpring;
     [SerializeField] private CameraLean cameraLean;
     [SerializeField] private Volume volume;
     [SerializeField] private StanceVignette stanceVignette;
-
-
+    [Header("Debug texts")]
     [SerializeField] private TextMeshProUGUI groundedTMP;
     [SerializeField] private TextMeshProUGUI stanceTMP;
     [SerializeField] private TextMeshProUGUI canDashTMP;
@@ -53,8 +53,6 @@ public class Player : MonoBehaviour
         // Get camera input/target and update its rotation/position
         var cameraInput = new CameraInput { Look = input.Look.ReadValue<Vector2>() };
         playerCamera.UpdateRotation(cameraInput);
-        var cameraTarget = playerCharacter.GetCameraTarget();
-        playerCamera.UpdatePosition(cameraTarget);
 
         // Get character input and update it
         var characterInput = new CharacterInput
@@ -71,7 +69,7 @@ public class Player : MonoBehaviour
         playerCharacter.UpdateInput(characterInput);
         playerCharacter.UpdateBody(deltaTime);
 
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         if (Keyboard.current.tKey.wasPressedThisFrame)
         {
             var ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
@@ -95,7 +93,9 @@ public class Player : MonoBehaviour
         isDashingTMP.SetText("Is Dashing : " + playerCharacter.GetIsDashing().ToString());
         jumpsRemainingTMP.SetText("Jumps remaining : " + playerCharacter.GetJumpsRemaining().ToString());
         
+        // Update camera position in LateUpdate to avoid lagging behind 1 frame and seeing the player
         var cameraTarget = playerCharacter.GetCameraTarget();
+        playerCamera.UpdatePosition(cameraTarget);
 
         cameraSpring.UpdateSpring(deltaTime, cameraTarget.up);
         cameraLean.UpdateLean
