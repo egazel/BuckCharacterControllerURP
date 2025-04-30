@@ -199,7 +199,12 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                 : Vector3.ProjectOnPlane(root.forward, motor.CharacterUp).normalized;
 
             float dashSpeed = walkSpeed * _wantedDashMult;
-            currentVelocity = dashDir * dashSpeed;
+
+            Vector3 projectedVel = Vector3.Project(currentVelocity, dashDir);
+            if (projectedVel.magnitude < dashSpeed)
+            {
+                currentVelocity += dashDir * (dashSpeed - projectedVel.magnitude);
+            }
 
             _state.Acceleration = Vector3.zero;
 
