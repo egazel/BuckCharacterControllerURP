@@ -90,7 +90,6 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     private bool _requestedDash;
     private float _dashDuration;
     private bool _isDashing;
-    private float _wantedDashMult;
     private float _dashCooldownRemaining;
     private bool _dashedDuringThisJump;
 
@@ -102,7 +101,6 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         _remainingJumps = numberOfJumps;
         motor.CharacterController = this;
         _isDashing = false;
-        _wantedDashMult = 1f;
     }
 
     public void UpdateInput(CharacterInput input)
@@ -187,8 +185,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             _dashCooldownRemaining = dashCooldown;
             _isDashing = true;
             _requestedDash = false;
-/*            _wantedDashMult = dashSpeedMultiplier;
-*/        }
+        }
 
         // Dash (not when crouching)
         if (!(_state.Stance is Stance.Crouch) && _isDashing && _dashDuration > 0f && !_dashedDuringThisJump)
@@ -215,14 +212,16 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         else if (_dashDuration <= 0f)
         {
             _isDashing = false;
-/*            _wantedDashMult = 1f;
-*/      }
+        }
+
+        var wasInAir = !_lastState.Grounded;
 
         if (motor.GroundingStatus.IsStableOnGround) // On the ground
         {
             _timeSinceUngrounded = 0f;
             _ungroundedDueToJump = false;
             _remainingJumps = numberOfJumps;
+
             // Snap requested movement direction to the angle of the surface the char is on
             var groundedMovement = motor.GetDirectionTangentToSurface
                 (
@@ -230,7 +229,6 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                     surfaceNormal: motor.GroundingStatus.GroundNormal
                 ) * _requestedMovement.magnitude;
 
-            var wasInAir = !_lastState.Grounded;
 
             //  If we just landed...
             if (wasInAir)
@@ -298,8 +296,6 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                         t: 1f - Mathf.Exp(-response * deltaTime)
                     );
 
-
-                moveVelocity *= _wantedDashMult;
                 _state.Acceleration = moveVelocity - currentVelocity;
                 currentVelocity = moveVelocity;
             }
@@ -346,6 +342,15 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         else // In the air
         {
             _timeSinceUngrounded += deltaTime;
+
+            if (!wasInAir && !_requestedJump)
+            {
+                if (_remainingJumps - 1 > 0)
+                {
+                    _remainingJumps--;
+                }
+            }
+
             // Move
             if (_requestedMovement.sqrMagnitude > 0f)
             {
