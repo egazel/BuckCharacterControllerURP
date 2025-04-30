@@ -4,11 +4,11 @@ using UnityEngine;
 
 public class CameraLean : MonoBehaviour
 {
-    [SerializeField] private float attackDamping = 0.5f;
-    [SerializeField] private float decayDamping = 0.3f;
-    [SerializeField] private float walkStrength = 0.075f;
-    [SerializeField] private float slideStrength = 0.2f;
-    [SerializeField] private float strengthResponse = 5f;
+    [SerializeField] private float attackDamping = 0.4f;
+    [SerializeField] private float decayDamping = 0.2f;
+    [SerializeField] private float walkStrength = 0.065f;
+    [SerializeField] private float slideStrength = 0.1f;
+    [SerializeField] private float strengthResponse = 4f;
 
     private Vector3 _dampedAcceleration;
     private Vector3 _dampedAccelerationVel;

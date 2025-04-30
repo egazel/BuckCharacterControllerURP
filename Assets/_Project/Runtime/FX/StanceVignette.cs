@@ -5,7 +5,7 @@ using UnityEngine.Rendering.HighDefinition;
 public class StanceVignette : MonoBehaviour
 {
     [SerializeField] private float min = 0.1f;
-    [SerializeField] private float max = 0.35f;
+    [SerializeField] private float max = 0.45f;
     [SerializeField] private float response = 10f;
 
     private VolumeProfile _profile;
