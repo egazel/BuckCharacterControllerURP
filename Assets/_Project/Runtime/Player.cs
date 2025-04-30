@@ -13,6 +13,7 @@ public class Player : MonoBehaviour
     [SerializeField] private CameraLean cameraLean;
     [SerializeField] private Volume volume;
     [SerializeField] private StanceVignette stanceVignette;
+    [SerializeField] private DashDistortion dashDistortion;
     [Header("Debug texts")]
     [SerializeField] private TextMeshProUGUI groundedTMP;
     [SerializeField] private TextMeshProUGUI stanceTMP;
@@ -23,6 +24,7 @@ public class Player : MonoBehaviour
 
 
     private PlayerInputActions _inputActions;
+    private bool _wasDashingLastFrame;
 
     void Start()
     {
@@ -38,6 +40,7 @@ public class Player : MonoBehaviour
         cameraLean.Initialize();
 
         stanceVignette.Initialize(volume.profile);
+        dashDistortion.Initialize(volume.profile);
     }
 
     private void OnDestroy()
@@ -111,6 +114,13 @@ public class Player : MonoBehaviour
         stanceVignette.UpdateVignette(deltaTime, state.Stance);
 
         playerCamera.UpdateSpeedLinesVFX(state.Velocity.magnitude);
+
+        if (playerCharacter.GetIsDashing() && !_wasDashingLastFrame)
+        {
+            dashDistortion.TriggerDash();
+        }
+        _wasDashingLastFrame = playerCharacter.GetIsDashing();
+        dashDistortion.UpdateDashDistortion(Time.deltaTime);
     }
 
     public void Teleport(Vector3 position)
