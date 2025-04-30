@@ -11,9 +11,9 @@ public class PlayerCamera : MonoBehaviour
     [Header("Speed based FOV settings")]
     [SerializeField] private Camera playerCam;
     [SerializeField] private float baseFOV = 70f;
-    [SerializeField] private float maxFOV = 90f;
-    [SerializeField] private float fovSpeedMultiplier = 0.25f; // How much FOV increases per speed unit
-    [SerializeField] private float fovLerpSpeed = 8f;
+    [SerializeField] private float maxFOV = 85f;
+    [SerializeField] private float fovSpeedMultiplier = 0.1f; // How much FOV increases per speed unit
+    [SerializeField] private float fovLerpSpeed = 4f;
 
     private Vector3 _eulerAngles;
     public void Initialize(Transform target)

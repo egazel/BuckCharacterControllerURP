@@ -194,6 +194,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         }
 
         // Dash (not when crouching)
+        // TODO ACCEPT DASH IF CROUCHING BUT IN THE AIR
         if (!(_state.Stance is Stance.Crouch) && _isDashing && _dashDuration > 0f && !_dashedDuringThisJump)
         {
             _dashDuration -= deltaTime;
@@ -567,7 +568,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     public CharacterState GetLastState() => _lastState;
     public bool GetIsDashing() => _isDashing;
     public float GetJumpsRemaining() => _remainingJumps;
-    public bool GetCanDash() => (!_isDashing && !_dashedDuringThisJump && _state.Stance is not Stance.Crouch);
+    public bool GetCanDash() => (!_isDashing && !_dashedDuringThisJump && !(_state.Stance is not Stance.Crouch));
 
     public void SetPosition(Vector3 position, bool killVelocity = true)
     {

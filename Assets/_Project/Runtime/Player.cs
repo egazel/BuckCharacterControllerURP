@@ -88,7 +88,7 @@ public class Player : MonoBehaviour
 
         groundedTMP.SetText("Grounded : " + state.Grounded.ToString());
         stanceTMP.SetText("Stance : " + state.Stance.ToString());
-        velocityTmp.SetText("Velocity : " + state.Velocity.ToString());
+        velocityTmp.SetText("Velocity : " + Mathf.Round(state.Velocity.magnitude).ToString());
         canDashTMP.SetText("Can dash : " + playerCharacter.GetCanDash().ToString());
         isDashingTMP.SetText("Is Dashing : " + playerCharacter.GetIsDashing().ToString());
         jumpsRemainingTMP.SetText("Jumps remaining : " + playerCharacter.GetJumpsRemaining().ToString());
