@@ -109,6 +109,8 @@ public class Player : MonoBehaviour
         playerCamera.UpdateFOV(state.Velocity.magnitude, deltaTime);
 
         stanceVignette.UpdateVignette(deltaTime, state.Stance);
+
+        playerCamera.UpdateSpeedLinesVFX(state.Velocity.magnitude);
     }
 
     public void Teleport(Vector3 position)
