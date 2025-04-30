@@ -105,6 +105,9 @@ public class Player : MonoBehaviour
                 state.Acceleration,
                 cameraTarget.up
             );
+
+        playerCamera.UpdateFOV(state.Velocity.magnitude, deltaTime);
+
         stanceVignette.UpdateVignette(deltaTime, state.Stance);
     }
 
