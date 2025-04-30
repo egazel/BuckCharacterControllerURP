@@ -12,6 +12,8 @@ public class CameraSpring : MonoBehaviour
     [SerializeField] private float angularDisplacement = 2f;
     [SerializeField] private float linearDisplacement = 0.05f;
     [SerializeField] private float maxDisplacement = 0.05f;
+    [SerializeField] private float verticalInfluence = 0.3f;
+
     private Vector3 _springPosition;
     private Vector3 _springVelocity;
 
@@ -24,12 +26,19 @@ public class CameraSpring : MonoBehaviour
     public void UpdateSpring(float deltaTime, Vector3 up)
     {
         transform.localPosition = Vector3.zero;
-        Spring(ref _springPosition, ref _springVelocity, transform.position, halfLife, frequency, deltaTime);
-        var relativeSpringPosition = _springPosition - transform.position;
-        var springHeight = Vector3.Dot(relativeSpringPosition, up);
-        transform.localEulerAngles = new Vector3(-springHeight * angularDisplacement, 0f, 0f);
 
-        Vector3 cappedDisplacement = Vector3.ClampMagnitude(relativeSpringPosition, maxDisplacement);
+        Spring(ref _springPosition, ref _springVelocity, transform.position, halfLife, frequency, deltaTime);
+
+        var relativeSpringPosition = _springPosition - transform.position;
+
+        Vector3 flatSpring = Vector3.ProjectOnPlane(relativeSpringPosition, up);
+        float verticalSpring = Vector3.Dot(relativeSpringPosition, up) * verticalInfluence;
+
+        Vector3 finalSpring = flatSpring + (up * verticalSpring);
+
+        transform.localEulerAngles = new Vector3(-verticalSpring * angularDisplacement, 0f, 0f);
+
+        Vector3 cappedDisplacement = Vector3.ClampMagnitude(finalSpring, maxDisplacement);
         transform.localPosition += cappedDisplacement * linearDisplacement;
     }
 
