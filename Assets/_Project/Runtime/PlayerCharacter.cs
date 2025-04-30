@@ -52,11 +52,12 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [Space]
     [SerializeField] private float slideStartSpeed = 25f;
     [SerializeField] private float slideEndSpeed = 15f;
-    [SerializeField] private float slideFriction = 0.6f;
+    [SerializeField] private float slideFriction = 0.4f;
     [SerializeField] private float slideSteerAcceleration = 5f;
     [SerializeField] private float slideGravity = -90f;
     [Space]
-    [SerializeField] private float dashSpeedMultiplier = 2.3f;
+    [SerializeField] private float dashBaseSpeed = 20f;
+    [SerializeField] private float dashScaleFactor = 1.1f;
     [SerializeField] private float dashDuration = .1f;
     [SerializeField] private float dashCooldown = 1f;
     [Space]
@@ -186,8 +187,8 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             _dashCooldownRemaining = dashCooldown;
             _isDashing = true;
             _requestedDash = false;
-            _wantedDashMult = dashSpeedMultiplier;
-        }
+/*            _wantedDashMult = dashSpeedMultiplier;
+*/        }
 
         // Dash (not when crouching)
         if (!(_state.Stance is Stance.Crouch) && _isDashing && _dashDuration > 0f && !_dashedDuringThisJump)
@@ -198,13 +199,8 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                 ? Vector3.ProjectOnPlane(_requestedMovement.normalized, motor.CharacterUp).normalized
                 : Vector3.ProjectOnPlane(root.forward, motor.CharacterUp).normalized;
 
-            float dashSpeed = walkSpeed * _wantedDashMult;
-
-            Vector3 projectedVel = Vector3.Project(currentVelocity, dashDir);
-            if (projectedVel.magnitude < dashSpeed)
-            {
-                currentVelocity += dashDir * (dashSpeed - projectedVel.magnitude);
-            }
+            float dashBoost = dashBaseSpeed * dashScaleFactor;
+            currentVelocity += dashDir * dashBoost;
 
             _state.Acceleration = Vector3.zero;
 
@@ -219,8 +215,8 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         else if (_dashDuration <= 0f)
         {
             _isDashing = false;
-            _wantedDashMult = 1f;
-        }
+/*            _wantedDashMult = 1f;
+*/      }
 
         if (motor.GroundingStatus.IsStableOnGround) // On the ground
         {
