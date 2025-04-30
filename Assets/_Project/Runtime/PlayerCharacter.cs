@@ -58,7 +58,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [SerializeField] private float slideEndSpeed = 15f;
     [SerializeField] private float slideFriction = 0.4f;
     [SerializeField] private float slideSteerAcceleration = 5f;
-    [SerializeField] private float slideGravity = -90f;
+    [SerializeField] private float slideGravity = -60f;
     [Space]
     [Header("Dash")]
     [SerializeField] private float dashBaseSpeed = 20f;
