@@ -185,16 +185,21 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             _dashCooldownRemaining -= deltaTime;
         }
 
-        if (_requestedDash && !(_dashCooldownRemaining > 0))
+        if (_requestedDash)
         {
-            _dashDuration = dashDuration;
-            _dashCooldownRemaining = dashCooldown;
-            _isDashing = true;
             _requestedDash = false;
+            if (!(_dashCooldownRemaining > 0)
+                && (_state.Stance is not Stance.Crouch || !motor.GroundingStatus.IsStableOnGround)
+                && !(_state.Stance is Stance.Slide && motor.GroundingStatus.IsStableOnGround))
+            {
+                _dashDuration = dashDuration;
+                _isDashing = true;
+                _dashCooldownRemaining = dashCooldown;
+            }
         }
 
         // Dash (not when crouching on the ground)
-        if ((_state.Stance is not Stance.Crouch || !motor.GroundingStatus.IsStableOnGround) && !(_state.Stance is Stance.Slide && motor.GroundingStatus.IsStableOnGround) && _isDashing && _dashDuration > 0f)
+        if (_isDashing && _dashDuration > 0f)
         {
             _dashDuration -= deltaTime;
 
@@ -237,7 +242,6 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                     direction: _requestedMovement,
                     surfaceNormal: motor.GroundingStatus.GroundNormal
                 ) * _requestedMovement.magnitude;
-
 
             //  If we just landed...
             if (wasInAir)
@@ -351,8 +355,8 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         else // In the air
         {
             _timeSinceUngrounded += deltaTime;
-
-            if (!wasInAir && !_requestedJump)
+            var canCoyoteJump = _timeSinceUngrounded < coyoteTime && !_ungroundedDueToJump;
+            if (!wasInAir && !_requestedJump && !canCoyoteJump)
             {
                 if (_remainingJumps - 1 > 0)
                 {
