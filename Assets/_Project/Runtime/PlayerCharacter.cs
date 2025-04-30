@@ -137,7 +137,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             _requestedCrouchInAir = false;
         }
 
-        if (_requestedJump || input.Dash)
+        if (input.Dash && _dashCooldownRemaining < coyoteTime && _state.Stance is not Stance.Crouch)
         {
             _requestedDash = input.Dash;
         }
@@ -236,6 +236,8 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             {
                 // Reset dash during jump bool
                 _dashedDuringThisJump = false;
+                _isDashing = false;
+                _dashDuration = 0f;
             }
 
             // Start sliding
@@ -551,6 +553,9 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     public Transform GetCameraTarget() => cameraTarget;
     public CharacterState GetState() => _state;
     public CharacterState GetLastState() => _lastState;
+    public bool GetIsDashing() => _isDashing;
+    public float GetJumpsRemaining() => _remainingJumps;
+    public bool GetCanDash() => (!_isDashing && !_dashedDuringThisJump && _state.Stance is not Stance.Crouch);
 
     public void SetPosition(Vector3 position, bool killVelocity = true)
     {

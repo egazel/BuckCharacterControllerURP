@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
@@ -11,6 +12,15 @@ public class Player : MonoBehaviour
     [SerializeField] private CameraLean cameraLean;
     [SerializeField] private Volume volume;
     [SerializeField] private StanceVignette stanceVignette;
+
+
+    [SerializeField] private TextMeshProUGUI groundedTMP;
+    [SerializeField] private TextMeshProUGUI stanceTMP;
+    [SerializeField] private TextMeshProUGUI canDashTMP;
+    [SerializeField] private TextMeshProUGUI isDashingTMP;
+    [SerializeField] private TextMeshProUGUI jumpsRemainingTMP;
+    [SerializeField] private TextMeshProUGUI velocityTmp;
+
 
     private PlayerInputActions _inputActions;
 
@@ -77,6 +87,14 @@ public class Player : MonoBehaviour
     {
         var deltaTime = Time.deltaTime;
         var state = playerCharacter.GetState();
+
+        groundedTMP.SetText("Grounded : " + state.Grounded.ToString());
+        stanceTMP.SetText("Stance : " + state.Stance.ToString());
+        velocityTmp.SetText("Velocity : " + state.Velocity.ToString());
+        canDashTMP.SetText("Can dash : " + playerCharacter.GetCanDash().ToString());
+        isDashingTMP.SetText("Is Dashing : " + playerCharacter.GetIsDashing().ToString());
+        jumpsRemainingTMP.SetText("Jumps remaining : " + playerCharacter.GetJumpsRemaining().ToString());
+        
         var cameraTarget = playerCharacter.GetCameraTarget();
 
         cameraSpring.UpdateSpring(deltaTime, cameraTarget.up);
