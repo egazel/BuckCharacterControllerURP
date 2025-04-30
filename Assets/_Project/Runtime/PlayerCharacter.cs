@@ -142,7 +142,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             _requestedCrouchInAir = false;
         }
 
-        if (input.Dash && _dashCooldownRemaining < coyoteTime && _state.Stance is not Stance.Crouch)
+        if (input.Dash && _dashCooldownRemaining < coyoteTime && (_state.Stance is not Stance.Crouch || !motor.GroundingStatus.IsStableOnGround))
         {
             _requestedDash = input.Dash;
         }
@@ -193,26 +193,28 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             _requestedDash = false;
         }
 
-        // Dash (not when crouching)
-        // TODO ACCEPT DASH IF CROUCHING BUT IN THE AIR
-        if (!(_state.Stance is Stance.Crouch) && _isDashing && _dashDuration > 0f && !_dashedDuringThisJump)
+        // Dash (not when crouching on the ground)
+        if ((_state.Stance is not Stance.Crouch || !motor.GroundingStatus.IsStableOnGround) && !(_state.Stance is Stance.Slide && motor.GroundingStatus.IsStableOnGround) && _isDashing && _dashDuration > 0f)
         {
             _dashDuration -= deltaTime;
 
-            Vector3 dashDir = _requestedMovement.sqrMagnitude > 0f
-                ? Vector3.ProjectOnPlane(_requestedMovement.normalized, motor.CharacterUp).normalized
-                : Vector3.ProjectOnPlane(root.forward, motor.CharacterUp).normalized;
-
-            float dashBoost = dashBaseSpeed * dashScaleFactor;
-            currentVelocity += dashDir * dashBoost;
-
-            _state.Acceleration = Vector3.zero;
-
-            // If we are dashing during a jump...
-            if (!motor.GroundingStatus.IsStableOnGround)
+            if (!_dashedDuringThisJump)
             {
-                // Track it so we only dash once per jump
-                _dashedDuringThisJump = true;
+                Vector3 dashDir = _requestedMovement.sqrMagnitude > 0f
+                    ? Vector3.ProjectOnPlane(_requestedMovement.normalized, motor.CharacterUp).normalized
+                    : Vector3.ProjectOnPlane(root.forward, motor.CharacterUp).normalized;
+
+                float dashBoost = dashBaseSpeed * dashScaleFactor;
+                currentVelocity += dashDir * dashBoost;
+
+                _state.Acceleration = Vector3.zero;
+
+                // If we are dashing during a jump...
+                if (!motor.GroundingStatus.IsStableOnGround)
+                {
+                    // Track it so we only dash once per jump
+                    _dashedDuringThisJump = true;
+                }
             }
             return; // Skip regular movement this frame while dashing
         }
@@ -568,7 +570,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     public CharacterState GetLastState() => _lastState;
     public bool GetIsDashing() => _isDashing;
     public float GetJumpsRemaining() => _remainingJumps;
-    public bool GetCanDash() => (!_isDashing && !_dashedDuringThisJump && !(_state.Stance is not Stance.Crouch));
+    public bool GetCanDash() => ((!_isDashing && !_dashedDuringThisJump) && (_state.Stance is not Stance.Crouch || !motor.GroundingStatus.IsStableOnGround));
 
     public void SetPosition(Vector3 position, bool killVelocity = true)
     {
