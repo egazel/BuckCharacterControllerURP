@@ -93,7 +93,7 @@ public class Player : MonoBehaviour
         stanceTMP.SetText("Stance : " + state.Stance.ToString());
         velocityTmp.SetText("Velocity : " + Mathf.Round(state.Velocity.magnitude).ToString());
         canDashTMP.SetText("Can dash : " + playerCharacter.GetCanDash().ToString());
-        isDashingTMP.SetText("Is Dashing : " + playerCharacter.GetIsDashing().ToString());
+        isDashingTMP.SetText("Is Dashing : " + (state.Stance is Stance.Dash).ToString());
         jumpsRemainingTMP.SetText("Jumps remaining : " + playerCharacter.GetJumpsRemaining().ToString());
         
         // Update camera position in LateUpdate to avoid lagging behind 1 frame and seeing the player
@@ -115,11 +115,12 @@ public class Player : MonoBehaviour
 
         playerCamera.UpdateSpeedLinesVFX(state.Velocity.magnitude);
 
-        if (playerCharacter.GetIsDashing() && !_wasDashingLastFrame)
+        var isDashing = playerCharacter.GetIsDashing();
+        if (isDashing && !_wasDashingLastFrame)
         {
             dashDistortion.TriggerDash();
         }
-        _wasDashingLastFrame = playerCharacter.GetIsDashing();
+        _wasDashingLastFrame = isDashing;
         dashDistortion.UpdateDashDistortion(Time.deltaTime);
     }
 

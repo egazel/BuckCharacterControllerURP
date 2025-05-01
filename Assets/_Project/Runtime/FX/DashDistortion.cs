@@ -14,9 +14,9 @@ public class DashDistortion : MonoBehaviour
     private bool _playing;
 
     [Header("Distortion Settings")]
-    [SerializeField] private float maxIntensity = -1f;
+    [SerializeField] private float maxIntensity = -.8f;
     [SerializeField] private float effectDuration = 0.2f;
-    [SerializeField] private float lerpSpeed = 14f;
+    [SerializeField] private float lerpSpeed = 10f;
 
     public void Initialize(VolumeProfile profile)
     {
