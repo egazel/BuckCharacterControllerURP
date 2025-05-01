@@ -371,7 +371,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                     (
                         vector: _requestedMovement,
                         planeNormal: motor.CharacterUp
-                    ) * _requestedMovement.magnitude;
+                    ).normalized * _requestedMovement.magnitude;
 
                 // Current velocity on movement plane
                 var currentPlanarVelocity = Vector3.ProjectOnPlane
@@ -451,7 +451,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                 _requestedCrouch = false; // Request uncrouch
                 _requestedCrouchInAir = false;
 
-                motor.ForceUnground(time: 0f);
+                motor.ForceUnground(time: 0.1f);
                 _ungroundedDueToJump = true;
 
                 // Set minimum vertical speed to the jump speed
