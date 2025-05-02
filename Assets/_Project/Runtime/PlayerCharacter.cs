@@ -626,9 +626,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         Vector3 lookForward = Vector3.ProjectOnPlane(_requestedRotation * Vector3.forward, motor.CharacterUp).normalized;
         _dashDirection = lookForward;
 
-        motor.ForceUnground(.2f);
-        // Set stance
-
+        motor.ForceUnground(.1f);
 
         if (!motor.GroundingStatus.IsStableOnGround)
             hasDashedThisJump = true;

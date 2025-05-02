@@ -22,7 +22,7 @@ public class PlayerCamera : MonoBehaviour
     [Space]
     [Header("Speed Lines VFX")]
     [SerializeField] private VisualEffect speedLinesVFX;
-    [SerializeField] private Vector2 speed = new Vector2(21f, 100f);
+    [SerializeField] private Vector2 speed = new Vector2(25f, 150f);
     [SerializeField] private Vector2 spawnRate = new Vector2(0f, 300f);
     [SerializeField] private Vector2 outRate = new Vector2(4f, 8f);
     [SerializeField] private Vector2 xScaleRange = new Vector2(8f, 50f);
