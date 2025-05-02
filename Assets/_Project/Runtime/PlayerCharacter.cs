@@ -40,6 +40,8 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [SerializeField] private float crouchSpeed = 7f;
     [SerializeField] private float walkResponse = 25f;
     [SerializeField] private float crouchResponse = 20f;
+    [SerializeField] float maxPlanarSpeed = 90f;
+    [SerializeField] float maxVerticalSpeed = 100f;
     [Space]
     [Header("Air control")]
     [SerializeField] private float airSpeed = 15f;
@@ -58,7 +60,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [SerializeField] private float slideEndSpeed = 15f;
     [SerializeField] private float slideFriction = 0.4f;
     [SerializeField] private float slideSteerAcceleration = 5f;
-    [SerializeField] private float slideGravity = -60f;
+    [SerializeField] private float slideGravity = -90f;
     [Space]
     [Header("Dash")]
     [SerializeField] private float dashDuration = 0.3f;
@@ -70,7 +72,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         new Keyframe(0.3f, 1f),
         new Keyframe(1f, 0f)
     );
-    [SerializeField] private float dashCooldown = 0.5f;
+    [SerializeField] private float dashCooldown = 1.2f;
 
     [Space]
     [Header("Player height")]
@@ -108,6 +110,8 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     private float _curMaxDashSpeed;
     private float _curMinDashSpeed;
     private bool hasDashedThisJump;
+
+    private float _curMaxPlanarSpeed;
 
     public void Initialize()
     {
@@ -192,7 +196,6 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     public void UpdateVelocity(ref Vector3 currentVelocity, float deltaTime)
     {
         _state.Acceleration = Vector3.zero;
-
         if (_dashCooldownRemaining > 0f)
         {
             _dashCooldownRemaining -= deltaTime;
@@ -473,6 +476,41 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                 _requestedJump = canJumpLater;
             }
         }
+
+        ApplySoftSpeedCap(ref currentVelocity);
+    }
+
+    private void ApplySoftSpeedCap(ref Vector3 currentVelocity)
+    {
+        // Soft cap planar velocity
+        Vector3 planarVelocity = Vector3.ProjectOnPlane(currentVelocity, motor.CharacterUp);
+        float planarSpeed = planarVelocity.magnitude;
+
+        _curMaxPlanarSpeed = _isDashing ? maxPlanarSpeed + dashBonusSpeed : maxPlanarSpeed;
+
+        if (planarSpeed > _curMaxPlanarSpeed)
+        {
+            float excessSpeed = planarSpeed - _curMaxPlanarSpeed;
+            float dampFactor = Mathf.Clamp01(excessSpeed / _curMaxPlanarSpeed);
+            float speedScale = Mathf.Lerp(1f, 0.5f, dampFactor);
+
+            planarVelocity = planarVelocity.normalized * (_curMaxPlanarSpeed + excessSpeed * speedScale);
+        }
+
+        // Soft cap vertical velocity
+        Vector3 verticalVelocity = Vector3.Project(currentVelocity, motor.CharacterUp);
+        float verticalSpeed = verticalVelocity.magnitude;
+
+        if (verticalSpeed > maxVerticalSpeed)
+        {
+            float excessSpeed = verticalSpeed - maxVerticalSpeed;
+            float dampFactor = Mathf.Clamp01(excessSpeed / maxVerticalSpeed);
+            float speedScale = Mathf.Lerp(1f, 0.5f, dampFactor);
+
+            verticalVelocity = verticalVelocity.normalized * (maxVerticalSpeed + excessSpeed * speedScale);
+        }
+
+        currentVelocity = planarVelocity + verticalVelocity;
     }
 
     public void UpdateRotation(ref Quaternion currentRotation, float deltaTime)
