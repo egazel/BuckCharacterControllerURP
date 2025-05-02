@@ -364,7 +364,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         {
             _timeSinceUngrounded += deltaTime;
             var canCoyoteJump = _timeSinceUngrounded < coyoteTime && !_ungroundedDueToJump;
-            if (!wasInAir && !_requestedJump && !canCoyoteJump)
+            if (!wasInAir && !_requestedJump && !canCoyoteJump) // TODO fix not removing jump when falling check condition
             {
                 if (_remainingJumps - 1 > 0)
                 {
