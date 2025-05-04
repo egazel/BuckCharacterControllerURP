@@ -33,6 +33,7 @@ public class DashCooldownDisplay : MonoBehaviour
         // Hide if dash is ready
         if (cooldown <= 0f)
         {
+            _cdImage.gameObject.SetActive(false);
             if (!canDash)
             {
                 _dynamicImageInstance.fillAmount = 1f;
@@ -46,6 +47,7 @@ public class DashCooldownDisplay : MonoBehaviour
             }
             return;
         }
+        _cdImage.gameObject.SetActive(true);
 
         /*_cdImage.gameObject.SetActive(true);*/
         _dynamicImageComponent.color = _activeColor;
