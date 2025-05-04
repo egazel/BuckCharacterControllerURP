@@ -90,11 +90,11 @@ public class Player : MonoBehaviour
     {
         var deltaTime = Time.deltaTime;
         var state = playerCharacter.GetState();
-
+        var canDash = playerCharacter.GetCanDash();
         groundedTMP.SetText("Grounded : " + state.Grounded.ToString());
         stanceTMP.SetText("Stance : " + state.Stance.ToString());
         velocityTmp.SetText("Velocity : " + Mathf.Round(state.Velocity.magnitude).ToString());
-        canDashTMP.SetText("Can dash : " + playerCharacter.GetCanDash().ToString());
+        canDashTMP.SetText("Can dash : " + canDash.ToString());
         isDashingTMP.SetText("Is Dashing : " + (state.Stance is Stance.Dash).ToString());
         jumpsRemainingTMP.SetText("Jumps remaining : " + playerCharacter.GetJumpsRemaining().ToString());
         
@@ -125,8 +125,9 @@ public class Player : MonoBehaviour
         _wasDashingLastFrame = isDashing;
         dashDistortion.UpdateDashDistortion(Time.deltaTime);
 
-        float dashCooldownRemaining = playerCharacter.GetDashCooldown();
-        _dashCooldownDisplay.UpdateDashCooldownDisplay(dashCooldownRemaining);
+        float dashCooldownRemaining = playerCharacter.GetDashCurrentCooldown();
+        float dashMaxCooldown = playerCharacter.GetDashMaxCooldown();
+        _dashCooldownDisplay.UpdateDashCooldownDisplay(dashCooldownRemaining, canDash, dashMaxCooldown);
     }
 
     public void Teleport(Vector3 position)

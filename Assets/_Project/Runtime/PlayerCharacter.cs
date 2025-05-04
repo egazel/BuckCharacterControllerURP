@@ -642,7 +642,9 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     public CharacterState GetState() => _state;
     public CharacterState GetLastState() => _lastState;
     public float GetJumpsRemaining() => _remainingJumps;
-    public float GetDashCooldown() => _dashCooldownRemaining;
+    public float GetDashCurrentCooldown() => _dashCooldownRemaining;
+    public float GetDashMaxCooldown() => dashCooldown;
+
     public bool GetCanDash() => _state.Stance is not Stance.Slide
             && !(_state.Stance is Stance.Crouch && motor.GroundingStatus.IsStableOnGround)
             && !hasDashedThisJump
