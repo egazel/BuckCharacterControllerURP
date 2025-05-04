@@ -321,7 +321,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                 currentVelocity = moveVelocity;
             }
             // Continue sliding
-            else
+            else if (_state.Stance is Stance.Slide)
             {
                 // Friction
                 currentVelocity -= currentVelocity * (slideFriction * deltaTime);
@@ -546,7 +546,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     public void AfterCharacterUpdate(float deltaTime)
     {
         // Uncrouch
-        if (!_requestedCrouch && _state.Stance is not Stance.Stand)
+        if (!_requestedCrouch && _state.Stance is not Stance.Stand && _state.Stance is not Stance.Dash)
         {
             motor.SetCapsuleDimensions
             (
