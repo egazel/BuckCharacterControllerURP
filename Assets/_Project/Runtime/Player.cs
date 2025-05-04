@@ -21,7 +21,8 @@ public class Player : MonoBehaviour
     [SerializeField] private TextMeshProUGUI isDashingTMP;
     [SerializeField] private TextMeshProUGUI jumpsRemainingTMP;
     [SerializeField] private TextMeshProUGUI velocityTmp;
-
+    [Header("Dash cooldown")]
+    [SerializeField] private DashCooldownDisplay _dashCooldownDisplay;
 
     private PlayerInputActions _inputActions;
     private bool _wasDashingLastFrame;
@@ -41,6 +42,7 @@ public class Player : MonoBehaviour
 
         stanceVignette.Initialize(volume.profile);
         dashDistortion.Initialize(volume.profile);
+        _dashCooldownDisplay.Initialize();
     }
 
     private void OnDestroy()
@@ -122,6 +124,9 @@ public class Player : MonoBehaviour
         }
         _wasDashingLastFrame = isDashing;
         dashDistortion.UpdateDashDistortion(Time.deltaTime);
+
+        float dashCooldownRemaining = playerCharacter.GetDashCooldown();
+        _dashCooldownDisplay.UpdateDashCooldownDisplay(dashCooldownRemaining);
     }
 
     public void Teleport(Vector3 position)
