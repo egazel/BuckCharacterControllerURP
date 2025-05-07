@@ -251,6 +251,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         // Start dash if requested (not on slide or crouch except if air crouch)
         if (_requestedDash 
             && _state.Stance is not Stance.Slide 
+            && _state.Stance is not Stance.Grapple
             && !(_state.Stance is Stance.Crouch && motor.GroundingStatus.IsStableOnGround)
             && !hasDashedThisJump)
         {
@@ -310,8 +311,9 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
 
         if (_isGrappling)
         {
-            _state.Stance = Stance.Grapple;
-
+            /*_state.Stance = Stance.Grapple;
+*/          _requestedJump = false;
+            _requestedDash = false;
             if (_state.Grounded)
                 motor.ForceUnground(0.1f);
 
@@ -341,13 +343,12 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                 // Re apply velocity before setting position to avoid loss
                 currentVelocity = velocityBeforeConstraint;
 
+                Vector3 gravityForce = Vector3.ProjectOnPlane(Physics.gravity * grappleGravityDamp, dirToAnchor);
+
                 float speed = currentVelocity.magnitude;
                 Vector3 tangentVelocity = Vector3.ProjectOnPlane(currentVelocity, dirToAnchor);
-                currentVelocity = tangentVelocity.normalized * speed;
-
+                currentVelocity = tangentVelocity.normalized * speed + gravityForce * deltaTime;
                 // Reduced gravity along swing arc
-                Vector3 gravityForce = Vector3.ProjectOnPlane(Physics.gravity * grappleGravityDamp, dirToAnchor);
-                currentVelocity += gravityForce * deltaTime;
             }
         }
 
@@ -798,6 +799,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
 
     public bool GetCanDash() => _state.Stance is not Stance.Slide
             && !(_state.Stance is Stance.Crouch && motor.GroundingStatus.IsStableOnGround)
+            && !(_state.Stance is Stance.Grapple)
             && !hasDashedThisJump
             && !(_dashCooldownRemaining > 0f);
     public bool GetIsDashing() => _isDashing;
