@@ -6,9 +6,14 @@ public enum CrouchInput
     None, Toggle
 }
 
+public enum GrappleInput
+{
+    None, Toggle
+}
+
 public enum Stance
 {
-    Stand, Crouch, Slide, Dash
+    Stand, Crouch, Slide, Dash, Grapple
 }
 
 public struct CharacterState
@@ -27,6 +32,7 @@ public struct CharacterInput
     public bool Dash;
     public bool JumpSustain;
     public CrouchInput Crouch;
+    public GrappleInput Grapple;
 }
 
 public class PlayerCharacter : MonoBehaviour, ICharacterController
@@ -34,6 +40,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [SerializeField] private KinematicCharacterMotor motor;
     [SerializeField] private Transform root;
     [SerializeField] private Transform cameraTarget;
+    [SerializeField] private Transform cameraTransform;
     [Space]
     [Header("Walk/Crouch speed")]
     [SerializeField] private float walkSpeed = 20f;
@@ -73,6 +80,17 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         new Keyframe(1f, 0f)
     );
     [SerializeField] private float dashCooldown = 1.2f;
+    [Space]
+    [Header("Grappling")]
+    [SerializeField] private LayerMask grappleLayerMask;
+    [SerializeField] private Transform grappleStart;
+    [SerializeField] private float grappleMaxDistance = 150;
+    [SerializeField] private float minRopeLength = 15f;
+    [SerializeField] float grappleReelSpeed = 40f;
+    [Range(0f, 1f)]
+    [SerializeField] private float grappleGravityDamp = .6f;
+    [Range(0f, 1f)]
+    [SerializeField] float grapplePullWeight = 0.6f;
 
     [Space]
     [Header("Player height")]
@@ -84,6 +102,8 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [SerializeField] private float standCameraTargetHeight = 0.9f;
     [Range(0f, 1f)]
     [SerializeField] private float crouchCameraTargetHeight = .7f;
+    [Range(0f, 1f)]
+    [SerializeField] private float grappleHeight = 0.5f;
 
     private CharacterState _state;
     private CharacterState _lastState;
@@ -113,6 +133,15 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
 
     private float _curMaxPlanarSpeed;
 
+    private bool _requestedGrappling;
+    private bool _isGrappling = false;
+    private LineRenderer _lineRenderer;
+    private Vector3 _grapplePoint;
+    private float _ropeLength;
+    private float _maxReelSpeed;
+    private bool _reachedRopeLength;
+    private float _curMinRopeLength;
+
     public void Initialize()
     {
         _state.Stance = Stance.Stand;
@@ -120,6 +149,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         _uncrouchOverlapResults = new Collider[8];
         _remainingJumps = numberOfJumps;
         motor.CharacterController = this;
+        _lineRenderer = GetComponent<LineRenderer>();
     }
 
     public void UpdateInput(CharacterInput input)
@@ -155,14 +185,21 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             _requestedCrouchInAir = false;
         }
 
-        if (input.Dash 
-            && !hasDashedThisJump 
-            && _dashCooldownRemaining <= 0f 
+        if (input.Dash
+            && !hasDashedThisJump
+            && _dashCooldownRemaining <= 0f
             && !_isDashing
             && !(_state.Stance is Stance.Crouch && motor.GroundingStatus.IsStableOnGround))
         {
             _requestedDash = true;
         }
+
+        _requestedGrappling = input.Grapple switch
+        {
+            GrappleInput.Toggle => true,
+            GrappleInput.None => false,
+            _ => _requestedGrappling
+        };
     }
 
     public void UpdateBody(float deltaTime)
@@ -175,6 +212,9 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                     ? standCameraTargetHeight
                     : crouchCameraTargetHeight
             );
+
+        var grappleStartHeight = currentHeight * grappleHeight;
+
         var rootTargetScale = new Vector3(1f, normalizedHeight, 1f);
 
         // Animate camera moving to get it smoother
@@ -184,6 +224,13 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                 b: new Vector3(0f, cameraTargetHeight, 0f),
                 t: 1f - Mathf.Exp(-crouchHeightResponse * deltaTime)
             );
+
+        grappleStart.localPosition = Vector3.Lerp
+        (
+            a: grappleStart.localPosition,
+            b: new Vector3(grappleStart.localPosition.x, grappleStartHeight, grappleStart.localPosition.z),
+            t: 1f - Mathf.Exp(-crouchHeightResponse * deltaTime)
+        );
 
         root.localScale = Vector3.Lerp
             (
@@ -212,7 +259,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
 
         if (_isDashing)
         {
-            _state.Stance = Stance.Dash; // TODO Find where Stance is being overriden during dash 
+            _state.Stance = Stance.Dash;
             var fellFromGround = _lastState.Grounded && !_state.Grounded;
             if (fellFromGround)
             {
@@ -240,6 +287,69 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         }
 
         var wasInAir = !_lastState.Grounded;
+
+        var wasGrappling = _isGrappling;
+        if (_requestedGrappling)
+        {
+            if (!wasGrappling)
+            {
+                RaycastHit hit;
+                if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out hit, grappleMaxDistance, grappleLayerMask))
+                {
+                    StartGrappleState(hit, ref currentVelocity);
+                }
+            }
+        }
+        else
+        {
+            if (wasGrappling)
+            {
+                EndGrappleState();
+            }
+        }
+
+        if (_isGrappling)
+        {
+            _state.Stance = Stance.Grapple;
+
+            if (_state.Grounded)
+                motor.ForceUnground(0.1f);
+
+            Vector3 toAnchor = _grapplePoint - transform.position;
+            Vector3 dirToAnchor = toAnchor.normalized;
+
+            // Pull towards grapple point
+            float distance = toAnchor.magnitude;
+            if (!_reachedRopeLength && distance > _curMinRopeLength + .1f)
+            {
+
+                // Blend between grapple pull and character input direction
+                Vector3 inputDir = _requestedMovement.normalized;
+                Vector3 blendedDir = Vector3.Slerp(inputDir, dirToAnchor, grapplePullWeight).normalized;
+
+                // Apply movement speed (reel speed or boost speed)
+                var curReelSpeed = Mathf.Lerp(_maxReelSpeed, grappleReelSpeed, deltaTime);
+                currentVelocity = blendedDir * curReelSpeed;
+            }
+            else
+            {
+                _reachedRopeLength = true;
+                var velocityBeforeConstraint = currentVelocity;
+                
+                motor.SetPosition(_grapplePoint - dirToAnchor * _curMinRopeLength);
+                
+                // Re apply velocity before setting position to avoid loss
+                currentVelocity = velocityBeforeConstraint;
+
+                float speed = currentVelocity.magnitude;
+                Vector3 tangentVelocity = Vector3.ProjectOnPlane(currentVelocity, dirToAnchor);
+                currentVelocity = tangentVelocity.normalized * speed;
+
+                // Reduced gravity along swing arc
+                Vector3 gravityForce = Vector3.ProjectOnPlane(Physics.gravity * grappleGravityDamp, dirToAnchor);
+                currentVelocity += gravityForce * deltaTime;
+            }
+        }
 
         if (motor.GroundingStatus.IsStableOnGround) // On the ground
         {
@@ -445,6 +555,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             {
                 effectiveGravity *= jumpSustainGravity;
             }
+
             currentVelocity += motor.CharacterUp * effectiveGravity * deltaTime;
         }
 
@@ -546,7 +657,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     public void AfterCharacterUpdate(float deltaTime)
     {
         // Uncrouch
-        if (!_requestedCrouch && _state.Stance is not Stance.Stand && _state.Stance is not Stance.Dash)
+        if (!_requestedCrouch && _state.Stance is not Stance.Stand && _state.Stance is not Stance.Dash && _state.Stance is not Stance.Grapple)
         {
             motor.SetCapsuleDimensions
             (
@@ -581,7 +692,6 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         _lastState = _tempState;
     }
 
-
     public bool IsColliderValidForCollisions(Collider coll)
     {
         return true;
@@ -611,6 +721,43 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     {
     }
 
+    private void StartGrappleState(RaycastHit hit, ref Vector3 currentVelocity)
+    {
+        _isGrappling = true;
+        _state.Stance = Stance.Grapple;
+        _requestedGrappling = false;
+        _grapplePoint = hit.point;
+        
+        _ropeLength = Vector3.Distance(grappleStart.transform.position, _grapplePoint);
+        _curMinRopeLength = Mathf.Min(_ropeLength, minRopeLength);
+        _reachedRopeLength = false;
+        
+        _lineRenderer.positionCount = 2;
+        
+        if (_remainingJumps == 0)
+        {
+            _remainingJumps = 1; // Re add the double jump if already used
+        }
+
+        _maxReelSpeed = Mathf.Max(grappleReelSpeed, currentVelocity.magnitude);
+    }
+
+    private void EndGrappleState()
+    {
+        _isGrappling = false;
+        _requestedGrappling = false;
+        _reachedRopeLength = false;
+        _lineRenderer.positionCount = 0;
+        _state.Stance = Stance.Stand;
+    }
+
+    public void DrawRope()
+    {
+        if (!_isGrappling) return;
+        _lineRenderer.SetPosition(0, grappleStart.position);
+        _lineRenderer.SetPosition(1, _grapplePoint);
+    }
+
     private void StartDashState()
     {
         _state.Stance = Stance.Dash;
@@ -621,7 +768,11 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         _dashTimeRemaining = dashDuration;
         _dashCooldownRemaining = dashCooldown;
         _requestedDash = false;
-
+        if (_isGrappling)
+        {
+            _isGrappling = false;
+            EndGrappleState();
+        }
         // Set dash direction (use input direction or facing forward)
         Vector3 lookForward = Vector3.ProjectOnPlane(_requestedRotation * Vector3.forward, motor.CharacterUp).normalized;
         _dashDirection = lookForward;

@@ -2,6 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
+using UnityEngine.SceneManagement;
 
 public class Player : MonoBehaviour
 {
@@ -67,6 +68,10 @@ public class Player : MonoBehaviour
             Jump = input.Jump.WasPressedThisFrame(),
             JumpSustain = input.Jump.IsPressed(),
             Dash = input.Dash.WasPressedThisFrame(),
+            /*Grapple = input.Grapple.WasPressedThisFrame()
+                ? GrappleInput.Toggle
+                : GrappleInput.None,*/
+            Grapple = input.Grapple.IsPressed() ? GrappleInput.Toggle : GrappleInput.None,
             Crouch = input.Crouch.WasPressedThisFrame()
                 ? CrouchInput.Toggle
                 : CrouchInput.None
@@ -74,7 +79,7 @@ public class Player : MonoBehaviour
         playerCharacter.UpdateInput(characterInput);
         playerCharacter.UpdateBody(deltaTime);
 
-#if UNITY_EDITOR
+        #if UNITY_EDITOR
         if (Keyboard.current.tKey.wasPressedThisFrame)
         {
             var ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
@@ -83,6 +88,12 @@ public class Player : MonoBehaviour
                 Teleport(hit.point);
             }
         }
+
+        if(Keyboard.current.rKey.wasPressedThisFrame)
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+
         #endif
     }
 
@@ -128,6 +139,8 @@ public class Player : MonoBehaviour
         float dashCooldownRemaining = playerCharacter.GetDashCurrentCooldown();
         float dashMaxCooldown = playerCharacter.GetDashMaxCooldown();
         _dashCooldownDisplay.UpdateDashCooldownDisplay(dashCooldownRemaining, canDash, dashMaxCooldown);
+
+        playerCharacter.DrawRope();
     }
 
     public void Teleport(Vector3 position)

@@ -23,7 +23,7 @@ public class StanceVignette : MonoBehaviour
 
     public void UpdateVignette(float deltaTime, Stance stance)
     {
-        var targetIntensity = stance is Stance.Stand ? min : max;
+        var targetIntensity = stance is Stance.Crouch || stance is Stance.Slide ? max : min;
         _vignette.intensity.value = Mathf.Lerp
             (
                 a: _vignette.intensity.value,
