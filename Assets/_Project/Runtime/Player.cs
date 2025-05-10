@@ -76,6 +76,9 @@ public class Player : MonoBehaviour
                 ? CrouchInput.Toggle
                 : CrouchInput.None
         };
+
+        playerCharacter.CheckGrapplePoints();
+
         playerCharacter.UpdateInput(characterInput);
         playerCharacter.UpdateBody(deltaTime);
 

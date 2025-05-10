@@ -91,7 +91,8 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [SerializeField] private float grappleGravityDamp = .6f;
     [Range(0f, 1f)]
     [SerializeField] float grapplePullWeight = 0.6f;
-
+    [SerializeField] float predictionSphereRadius = 0.6f;
+    [SerializeField] Transform _predictionPoint;
     [Space]
     [Header("Player height")]
     [SerializeField] private float standHeight = 2f;
@@ -141,6 +142,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     private float _maxReelSpeed;
     private bool _reachedRopeLength;
     private float _curMinRopeLength;
+    private RaycastHit _predictionHit;
 
     public void Initialize()
     {
@@ -294,10 +296,9 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         {
             if (!wasGrappling)
             {
-                RaycastHit hit;
-                if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out hit, grappleMaxDistance, grappleLayerMask))
+                if (_predictionHit.point != Vector3.zero)
                 {
-                    StartGrappleState(hit, ref currentVelocity);
+                    StartGrappleState(_predictionHit, ref currentVelocity);
                 }
             }
         }
@@ -720,6 +721,32 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
 
     public void ProcessHitStabilityReport(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint, Vector3 atCharacterPosition, Quaternion atCharacterRotation, ref HitStabilityReport hitStabilityReport)
     {
+    }
+
+    public void CheckGrapplePoints()
+    {
+        if (_isGrappling)
+        {
+            _predictionPoint.gameObject.SetActive(false);
+            return;
+        }
+
+        RaycastHit sphereCastHit;
+        Physics.SphereCast(cameraTransform.position, predictionSphereRadius, cameraTransform.forward, out sphereCastHit, grappleMaxDistance, grappleLayerMask);
+
+        RaycastHit hit;
+        Physics.Raycast(cameraTransform.position, cameraTransform.forward, out hit, grappleMaxDistance, grappleLayerMask);
+
+        if(sphereCastHit.point != Vector3.zero && hit.point == Vector3.zero)
+        {
+            _predictionPoint.gameObject.SetActive(true);
+            _predictionPoint.position = sphereCastHit.point;
+        }
+        else
+        {
+            _predictionPoint.gameObject.SetActive(false);
+        }
+        _predictionHit = hit.point == Vector3.zero ? sphereCastHit : hit;
     }
 
     private void StartGrappleState(RaycastHit hit, ref Vector3 currentVelocity)
