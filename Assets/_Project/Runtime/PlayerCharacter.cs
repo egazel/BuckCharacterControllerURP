@@ -48,8 +48,8 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [SerializeField] private float crouchSpeed = 7f;
     [SerializeField] private float walkResponse = 25f;
     [SerializeField] private float crouchResponse = 20f;
-    [SerializeField] float maxPlanarSpeed = 90f;
-    [SerializeField] float maxVerticalSpeed = 100f;
+    [SerializeField] float maxPlanarSpeed = 50f;
+    [SerializeField] float maxVerticalSpeed = 50f;
     [Space]
     [Header("Air control")]
     [SerializeField] private float airSpeed = 15f;
@@ -64,15 +64,15 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [SerializeField] private float gravity = -90f;
     [Space]
     [Header("Slide")]
-    [SerializeField] private float slideStartSpeed = 25f;
+    [SerializeField] private float slideStartSpeed = 30f;
     [SerializeField] private float slideEndSpeed = 15f;
     [SerializeField] private float slideFriction = 0.4f;
     [SerializeField] private float slideSteerAcceleration = 5f;
-    [SerializeField] private float slideGravity = -90f;
+    [SerializeField] private float slideGravity = -60f;
     [Space]
     [Header("Dash")]
     [SerializeField] private float dashDuration = 0.3f;
-    [SerializeField] private float dashBonusSpeed = 30f;
+    [SerializeField] private float dashBonusSpeed = 25f;
 
     [SerializeField] private AnimationCurve dashSpeedCurve = new AnimationCurve
     (
@@ -85,33 +85,33 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [Header("Grappling")]
     [SerializeField] private LayerMask grappleLayerMask;
     [SerializeField] private Transform grappleStart;
-    [SerializeField] private float grappleMaxDistance = 150;
-    [SerializeField] private float minRopeLength = 15f;
-    [SerializeField] float grappleReelSpeed = 40f;
+    [SerializeField] private float grappleMaxDistance = 40;
+    [SerializeField] private float minRopeLength = 2f;
+    [SerializeField] float grappleReelSpeed = 35f;
     [Range(0f, 1f)]
     [SerializeField] private float grappleGravityDamp = .6f;
     [Range(0f, 1f)]
-    [SerializeField] float grapplePullWeight = 0.6f;
-    [SerializeField] float predictionSphereRadius = 0.6f;
+    [SerializeField] float grapplePullWeight = 0.5f;
+    [SerializeField] float predictionSphereRadius = 1.5f;
     [SerializeField] Transform _predictionPoint;
     [Space]
     [Header("Grappling Rope Anim")]
-    [SerializeField] private float ropeExtendSpeed = 40f;
-    [SerializeField] private float waveAmplitude = 0.5f;
-    [SerializeField] private float waveFrequency = 2f;
+    [SerializeField] private float ropeExtendSpeed = 100f;
+    [SerializeField] private float waveAmplitude = 5f;
+    [SerializeField] private float waveFrequency = 7f;
     [SerializeField] private float waveAnimSpeed = 5f;
-    [SerializeField] private int ropeSegments = 20;
+    [SerializeField] private int ropeSegments = 60;
     [Space]
     [Header("Wall Run")]
     [SerializeField] private Transform wallrunCheckTransform;
     [SerializeField] private float wallRunSpeed = 20f;
     [SerializeField] private float wallRunDuration = 1.5f;
-    [SerializeField] private float wallRunGravity = 0.6f;
+    [SerializeField] private float wallRunGravity = -15f;
     [SerializeField] private float wallDetectionDistance = 1f;
     [SerializeField] private LayerMask wallRunLayerMask;
     [SerializeField] private float wallStickForce = 10f;
-    [SerializeField] private float wallJumpOutwardForce = 10f;
-    [SerializeField] private float wallJumpUpwardForce = 12f;
+    [SerializeField] private float wallJumpOutwardForce = 26f;
+    [SerializeField] private float wallJumpUpwardForce = 25f;
     [Space]
     [Header("Player height")]
     [SerializeField] private float standHeight = 2f;

@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 35.4034, g: 36.355087, b: 38.816513, a: 1}
+  m_IndirectSpecularColor: {r: 35.593124, g: 36.893143, b: 41.174652, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -2127,7 +2127,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb1414abd3f05e74b9e1f683517c9636, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxIntensity: -0.4
+  maxIntensity: -0.6
   effectDuration: 0.4
   lerpSpeed: 10
 --- !u!1 &709573575
@@ -3792,7 +3792,7 @@ MonoBehaviour:
   grappleStart: {fileID: 1763932300}
   grappleMaxDistance: 40
   minRopeLength: 2
-  grappleReelSpeed: 40
+  grappleReelSpeed: 35
   grappleGravityDamp: 0.6
   grapplePullWeight: 0.5
   predictionSphereRadius: 2
@@ -3895,7 +3895,7 @@ LineRenderer:
   m_RenderingLayerMask: 257
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 212f43573a4754648abd6e4be374e148, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
