@@ -24,6 +24,8 @@ public class Player : MonoBehaviour
     [SerializeField] private TextMeshProUGUI velocityTmp;
     [Header("Dash cooldown")]
     [SerializeField] private DashCooldownDisplay _dashCooldownDisplay;
+    [Header("Grapple Ability Display")]
+    [SerializeField] private GrappleAbilityDisplay _grappleAbilityDisplay;
 
     private PlayerInputActions _inputActions;
     private bool _wasDashingLastFrame;
@@ -44,6 +46,7 @@ public class Player : MonoBehaviour
         stanceVignette.Initialize(volume.profile);
         dashDistortion.Initialize(volume.profile);
         _dashCooldownDisplay.Initialize();
+        _grappleAbilityDisplay.Initialize();
     }
 
     private void OnDestroy()
@@ -120,8 +123,9 @@ public class Player : MonoBehaviour
         cameraLean.UpdateLean
             (
                 deltaTime,
-                state.Stance is Stance.Slide,
+                state.Stance,
                 state.Acceleration,
+                playerCharacter.GetWallRunWallNormal(),
                 cameraTarget.up
             );
 
@@ -142,7 +146,7 @@ public class Player : MonoBehaviour
         float dashCooldownRemaining = playerCharacter.GetDashCurrentCooldown();
         float dashMaxCooldown = playerCharacter.GetDashMaxCooldown();
         _dashCooldownDisplay.UpdateDashCooldownDisplay(dashCooldownRemaining, canDash, dashMaxCooldown);
-
+        _grappleAbilityDisplay.UpdateGrappleAbilityDisplay(playerCharacter.GetGrapplePredictionHitPoint());
         playerCharacter.DrawRope();
     }
 

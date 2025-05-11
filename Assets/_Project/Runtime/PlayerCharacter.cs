@@ -1,5 +1,6 @@
 using UnityEngine;
 using KinematicCharacterController;
+using UnityEngine.Windows;
 
 public enum CrouchInput
 {
@@ -13,7 +14,7 @@ public enum GrappleInput
 
 public enum Stance
 {
-    Stand, Crouch, Slide, Dash, Grapple
+    Stand, Crouch, Slide, Dash, Grapple, WallRun
 }
 
 public struct CharacterState
@@ -94,6 +95,17 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [SerializeField] float predictionSphereRadius = 0.6f;
     [SerializeField] Transform _predictionPoint;
     [Space]
+    [Header("Wall Run")]
+    [SerializeField] private Transform wallrunCheckTransform;
+    [SerializeField] private float wallRunSpeed = 20f;
+    [SerializeField] private float wallRunDuration = 1.5f;
+    [SerializeField] private float wallRunGravity = 0.6f;
+    [SerializeField] private float wallDetectionDistance = 1f;
+    [SerializeField] private LayerMask wallRunLayerMask;
+    [SerializeField] private float wallStickForce = 10f;
+    [SerializeField] private float wallJumpOutwardForce = 10f;
+    [SerializeField] private float wallJumpUpwardForce = 12f;
+    [Space]
     [Header("Player height")]
     [SerializeField] private float standHeight = 2f;
     [SerializeField] private float crouchHeight = 1f;
@@ -143,6 +155,10 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     private bool _reachedRopeLength;
     private float _curMinRopeLength;
     private RaycastHit _predictionHit;
+
+    private bool _isWallRunning = false;
+    private float _wallRunTime = 0f;
+    private Vector3 _wallNormal;
 
     public void Initialize()
     {
@@ -216,7 +232,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             );
 
         var grappleStartHeight = currentHeight * grappleHeight;
-
+        var wallrunCheckHeight = currentHeight * grappleHeight;
         var rootTargetScale = new Vector3(1f, normalizedHeight, 1f);
 
         // Animate camera moving to get it smoother
@@ -234,6 +250,13 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             t: 1f - Mathf.Exp(-crouchHeightResponse * deltaTime)
         );
 
+        wallrunCheckTransform.localPosition = Vector3.Lerp
+        (
+            a: wallrunCheckTransform.localPosition,
+            b: new Vector3(wallrunCheckTransform.localPosition.x, wallrunCheckHeight, wallrunCheckTransform.localPosition.z),
+            t: 1f - Mathf.Exp(-crouchHeightResponse * deltaTime)
+        );
+
         root.localScale = Vector3.Lerp
             (
                 a: root.localScale,
@@ -244,20 +267,37 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
 
     public void UpdateVelocity(ref Vector3 currentVelocity, float deltaTime)
     {
-        _state.Acceleration = Vector3.zero;
-        if (_dashCooldownRemaining > 0f)
-        {
-            _dashCooldownRemaining -= deltaTime;
-        }
-
         // Start dash if requested (not on slide or crouch except if air crouch)
-        if (_requestedDash 
-            && _state.Stance is not Stance.Slide 
+        if (_requestedDash
+            && _state.Stance is not Stance.Slide
             && _state.Stance is not Stance.Grapple
+            && _state.Stance is not Stance.WallRun
             && !(_state.Stance is Stance.Crouch && motor.GroundingStatus.IsStableOnGround)
             && !hasDashedThisJump)
         {
             StartDashState();
+        }
+
+        if (!_state.Grounded && !_isWallRunning && !_isGrappling && !_isDashing)
+        {
+            if (CheckDistanceToGround() > 2.8f) // arbitrary value
+            {
+                if (CheckWall(out Vector3 wallNormal))
+                {
+                    StartWallRun(wallNormal);
+                }
+                else
+                {
+                    _state.Stance = Stance.Slide;
+                }
+            }
+
+        }
+
+        _state.Acceleration = Vector3.zero;
+        if (_dashCooldownRemaining > 0f)
+        {
+            _dashCooldownRemaining -= deltaTime;
         }
 
         if (_isDashing)
@@ -351,6 +391,60 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                 currentVelocity = tangentVelocity.normalized * speed + gravityForce * deltaTime;
                 // Reduced gravity along swing arc
             }
+        }
+
+        if (_isWallRunning)
+        {
+            _state.Stance = Stance.WallRun;
+            _wallRunTime += deltaTime;
+
+            // Stick force
+            currentVelocity -= _wallNormal * wallStickForce * deltaTime;
+
+            // Forward movement along wall 
+            Vector3 wallForward = Vector3.Cross(_wallNormal, motor.CharacterUp);
+            wallForward = Vector3.Dot(wallForward, _requestedMovement) > 0f ? wallForward : -wallForward; // TODO FIX THIS TO STOP GRAPPLING IF NO FRONT INPUT
+
+            // Speed falloff factor
+            float speedFactor = Mathf.Clamp01(1f - (_wallRunTime / wallRunDuration));
+            float forwardBoost = Mathf.Max(wallRunSpeed, currentVelocity.magnitude) * speedFactor;
+
+            // Only add boost if current speed along wall is less
+            float currentWallSpeed = Vector3.Dot(currentVelocity, wallForward);
+            if (currentWallSpeed < forwardBoost)
+            {
+                float boost = forwardBoost - currentWallSpeed;
+                currentVelocity += wallForward * boost;
+            }
+
+            // Gravity
+            currentVelocity += motor.CharacterUp * wallRunGravity * deltaTime;
+
+            // Cancel wallrun if speed too low or time expired
+            if (_wallRunTime > wallRunDuration || currentWallSpeed <= 1f || !CheckWall(out _) || motor.GroundingStatus.IsStableOnGround)
+            {
+                EndWallRun();
+            }
+
+            if (_requestedJump)
+            {
+                _requestedJump = false;
+
+                // 1. Get current planar (horizontal) velocity
+                Vector3 planarVelocity = Vector3.ProjectOnPlane(currentVelocity, motor.CharacterUp);
+
+                // 2. Compute wall jump vertical + outward force
+                Vector3 jumpVertical = motor.CharacterUp * wallJumpUpwardForce;
+                Vector3 jumpOutward = _wallNormal * wallJumpOutwardForce;
+
+                Vector3 wallJumpForce = jumpVertical + jumpOutward;
+
+                // 3. Combine: Keep planar velocity + force vertical boost
+                currentVelocity = planarVelocity + wallJumpForce;
+
+                EndWallRun();
+            }
+            return;
         }
 
         if (motor.GroundingStatus.IsStableOnGround) // On the ground
@@ -593,6 +687,78 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         ApplySoftSpeedCap(ref currentVelocity);
     }
 
+
+    private bool CheckWall(out Vector3 wallNormal)
+    {
+        wallNormal = Vector3.zero;
+        RaycastHit hit;
+
+        Vector3 origin = wallrunCheckTransform.transform.position;
+        Vector3 left = -wallrunCheckTransform.transform.right;
+        Vector3 right = wallrunCheckTransform.transform.right;
+
+        bool leftHit = Physics.Raycast(origin, left, out hit, wallDetectionDistance, wallRunLayerMask);
+        if (!_state.Grounded)
+        {
+            if (leftHit)
+            {
+                if (IsWallRunnable(hit.normal))
+                {
+                    wallNormal = hit.normal;
+                    return true;
+                }
+            }
+
+            bool rightHit = Physics.Raycast(origin, right, out hit, wallDetectionDistance, wallRunLayerMask);
+            if (rightHit)
+            {
+                if (IsWallRunnable(hit.normal))
+                {
+                    wallNormal = hit.normal;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private bool IsWallRunnable(Vector3 normal)
+    {
+        float angle = Vector3.Angle(normal, motor.CharacterUp);
+        return angle > 85f && angle < 95f; // Only near-vertical walls
+    }
+
+
+    private void StartWallRun(Vector3 wallNormal)
+    {
+        _isWallRunning = true;
+        _wallNormal = wallNormal;
+        _wallRunTime = 0f;
+        _state.Stance = Stance.WallRun;
+        _remainingJumps = 1;
+        hasDashedThisJump = false;
+        motor.ForceUnground(0.1f);
+
+        // Reset vertical speed to prevent bouncing
+        Vector3 planarVelocity = Vector3.ProjectOnPlane(motor.Velocity, motor.CharacterUp);
+        motor.BaseVelocity = planarVelocity;
+    }
+
+    private void EndWallRun()
+    {
+        _isWallRunning = false;
+        _state.Stance = Stance.Stand;
+    }
+
+    private float CheckDistanceToGround()
+    {
+        if (!Physics.Raycast(transform.position, Vector3.down, out var hit))
+        {
+            return float.PositiveInfinity;
+        }
+
+        return hit.distance;
+    }
     private void ApplySoftSpeedCap(ref Vector3 currentVelocity)
     {
         // Soft cap planar velocity
@@ -659,7 +825,11 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     public void AfterCharacterUpdate(float deltaTime)
     {
         // Uncrouch
-        if (!_requestedCrouch && _state.Stance is not Stance.Stand && _state.Stance is not Stance.Dash && _state.Stance is not Stance.Grapple)
+        if (!_requestedCrouch 
+            && _state.Stance is not Stance.Stand 
+            && _state.Stance is not Stance.Dash 
+            && _state.Stance is not Stance.Grapple
+            && _state.Stance is not Stance.WallRun)
         {
             motor.SetCapsuleDimensions
             (
@@ -685,6 +855,11 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             {
                 _state.Stance = Stance.Stand;
             }
+        }
+
+        if (_isWallRunning && motor.GroundingStatus.IsStableOnGround)
+        {
+            EndWallRun();
         }
 
         // Update state to reflect relevant motor properties
@@ -823,13 +998,15 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     public float GetJumpsRemaining() => _remainingJumps;
     public float GetDashCurrentCooldown() => _dashCooldownRemaining;
     public float GetDashMaxCooldown() => dashCooldown;
-
+    public Vector3 GetGrapplePredictionHitPoint() => _predictionHit.point;
     public bool GetCanDash() => _state.Stance is not Stance.Slide
             && !(_state.Stance is Stance.Crouch && motor.GroundingStatus.IsStableOnGround)
             && !(_state.Stance is Stance.Grapple)
+            && !(_state.Stance is Stance.WallRun)
             && !hasDashedThisJump
             && !(_dashCooldownRemaining > 0f);
     public bool GetIsDashing() => _isDashing;
+    public Vector3 GetWallRunWallNormal() => _wallNormal;
 
     public void SetPosition(Vector3 position, bool killVelocity = true)
     {

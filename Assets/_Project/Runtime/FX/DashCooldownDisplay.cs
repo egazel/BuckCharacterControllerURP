@@ -4,6 +4,8 @@ using UnityEngine.UI;
 public class DashCooldownDisplay : MonoBehaviour
 {
     [SerializeField] private PlayerCharacter playerCharacter;
+    [Space]
+    [Header("Dash Cooldown Display")]
     [SerializeField] private Image _cdImage;
     [SerializeField] private Color32 _backgroundColor;
     [SerializeField] private Color32 _activeColor;
