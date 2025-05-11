@@ -16,15 +16,9 @@ public class GrappleAbilityDisplay : MonoBehaviour
         _dashDisplayImage.fillAmount = 1f;
     }
 
-    public void UpdateGrappleAbilityDisplay(Vector3 grapplePredictionPoint)
+    public void UpdateGrappleAbilityDisplay(bool canGrapple)
     {
-        if (grapplePredictionPoint != Vector3.zero)
-        {
-            _dashDisplayImage.gameObject.SetActive(true);
-        }
-        else
-        {
-            _dashDisplayImage.gameObject.SetActive(false);
-        }
+        _dashDisplayImage.gameObject.SetActive(canGrapple);
+       
     }
 }

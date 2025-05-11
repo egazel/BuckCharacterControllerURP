@@ -147,7 +147,11 @@ public class Player : MonoBehaviour
         float dashMaxCooldown = playerCharacter.GetDashMaxCooldown();
         _dashCooldownDisplay.UpdateDashCooldownDisplay(dashCooldownRemaining, canDash, dashMaxCooldown);
         _grappleAbilityDisplay.UpdateGrappleAbilityDisplay(playerCharacter.GetGrapplePredictionHitPoint());
-        playerCharacter.DrawRope();
+        if(playerCharacter.GetIsGrappling() || playerCharacter.GetIsRopeExtending()) 
+        {
+            // Only draw rope if we are grappling or extending the rope
+            playerCharacter.DrawRope();
+        }
     }
 
     public void Teleport(Vector3 position)

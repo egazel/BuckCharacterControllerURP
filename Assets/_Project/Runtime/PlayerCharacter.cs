@@ -95,6 +95,13 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [SerializeField] float predictionSphereRadius = 0.6f;
     [SerializeField] Transform _predictionPoint;
     [Space]
+    [Header("Grappling Rope Anim")]
+    [SerializeField] private float ropeExtendSpeed = 40f;
+    [SerializeField] private float waveAmplitude = 0.5f;
+    [SerializeField] private float waveFrequency = 2f;
+    [SerializeField] private float waveAnimSpeed = 5f;
+    [SerializeField] private int ropeSegments = 20;
+    [Space]
     [Header("Wall Run")]
     [SerializeField] private Transform wallrunCheckTransform;
     [SerializeField] private float wallRunSpeed = 20f;
@@ -155,6 +162,12 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     private bool _reachedRopeLength;
     private float _curMinRopeLength;
     private RaycastHit _predictionHit;
+    private bool _hasReleasedGrapplingButton;
+
+    private float _currentRopeLength = 0f;
+    private bool _ropeExtending = false;
+    private bool _grappleInProgress = false;
+    private Vector3 _waveDirection;
 
     private bool _isWallRunning = false;
     private float _wallRunTime = 0f;
@@ -218,6 +231,18 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             GrappleInput.None => false,
             _ => _requestedGrappling
         };
+
+        // the 2 following checks are done to avoid perma grappling
+        // if the button hasn't been release since the end of the last grapple
+        if (!_hasReleasedGrapplingButton && !_requestedGrappling)
+        {
+            _hasReleasedGrapplingButton = true;
+        }
+
+        if (_requestedGrappling && !_hasReleasedGrapplingButton)
+        {
+            _requestedGrappling = false;
+        }
     }
 
     public void UpdateBody(float deltaTime)
@@ -280,7 +305,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
 
         if (!_state.Grounded && !_isWallRunning && !_isGrappling && !_isDashing)
         {
-            if (CheckDistanceToGround() > 2.8f) // arbitrary value
+            if (CheckDistanceToGround() > 2.5f) // arbitrary value
             {
                 if (CheckWall(out Vector3 wallNormal))
                 {
@@ -353,43 +378,32 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         if (_isGrappling)
         {
             /*_state.Stance = Stance.Grapple;
-*/          _requestedJump = false;
+            _requestedJump = false;*/
             _requestedDash = false;
             if (_state.Grounded)
                 motor.ForceUnground(0.1f);
-
+            _remainingJumps = numberOfJumps - 1; // Re add the double jump if already used
             Vector3 toAnchor = _grapplePoint - transform.position;
             Vector3 dirToAnchor = toAnchor.normalized;
 
             // Pull towards grapple point
             float distance = toAnchor.magnitude;
+            Vector3 gravityForce = Vector3.ProjectOnPlane(Physics.gravity * grappleGravityDamp, dirToAnchor);
+
             if (!_reachedRopeLength && distance > _curMinRopeLength + .1f)
             {
-
                 // Blend between grapple pull and character input direction
                 Vector3 inputDir = _requestedMovement.normalized;
                 Vector3 blendedDir = Vector3.Slerp(inputDir, dirToAnchor, grapplePullWeight).normalized;
 
                 // Apply movement speed (reel speed or boost speed)
                 var curReelSpeed = Mathf.Lerp(_maxReelSpeed, grappleReelSpeed, deltaTime);
-                currentVelocity = blendedDir * curReelSpeed;
+                currentVelocity = blendedDir * curReelSpeed + gravityForce * deltaTime;
             }
             else
             {
-                _reachedRopeLength = true;
-                var velocityBeforeConstraint = currentVelocity;
-                
-                motor.SetPosition(_grapplePoint - dirToAnchor * _curMinRopeLength);
-                
-                // Re apply velocity before setting position to avoid loss
-                currentVelocity = velocityBeforeConstraint;
-
-                Vector3 gravityForce = Vector3.ProjectOnPlane(Physics.gravity * grappleGravityDamp, dirToAnchor);
-
-                float speed = currentVelocity.magnitude;
-                Vector3 tangentVelocity = Vector3.ProjectOnPlane(currentVelocity, dirToAnchor);
-                currentVelocity = tangentVelocity.normalized * speed + gravityForce * deltaTime;
-                // Reduced gravity along swing arc
+                // End grapple state once we reach the min rope length
+                EndGrappleState();
             }
         }
 
@@ -926,23 +940,32 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
 
     private void StartGrappleState(RaycastHit hit, ref Vector3 currentVelocity)
     {
-        _isGrappling = true;
-        _state.Stance = Stance.Grapple;
-        _requestedGrappling = false;
+        // Make sure we start grapple state only once
+        if (_grappleInProgress) return;
+        _grappleInProgress = true;
+
         _grapplePoint = hit.point;
         
         _ropeLength = Vector3.Distance(grappleStart.transform.position, _grapplePoint);
         _curMinRopeLength = Mathf.Min(_ropeLength, minRopeLength);
-        _reachedRopeLength = false;
-        
-        _lineRenderer.positionCount = 2;
-        
-        if (_remainingJumps == 0)
-        {
-            _remainingJumps = 1; // Re add the double jump if already used
-        }
 
         _maxReelSpeed = Mathf.Max(grappleReelSpeed, currentVelocity.magnitude);
+
+        _currentRopeLength = 0f;
+        _ropeExtending = true;
+
+        Vector3 ropeDir = (_grapplePoint - grappleStart.position).normalized;
+        //Get any vector not aligned with ropeDir
+        Vector3 randomVec = Random.insideUnitSphere;
+        if (Mathf.Abs(Vector3.Dot(ropeDir, randomVec)) > 0.95f)
+        {
+            randomVec = Vector3.right;
+        }
+        //Cross product for perpendicular
+        Vector3 waveDir = Vector3.Cross(ropeDir, randomVec).normalized;
+        //Project waveDir onto horizontal plane (Y = 0)
+        waveDir.y = 0f;
+        _waveDirection = waveDir.normalized;
     }
 
     private void EndGrappleState()
@@ -951,14 +974,65 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         _requestedGrappling = false;
         _reachedRopeLength = false;
         _lineRenderer.positionCount = 0;
+        _lineRenderer.enabled = false;
         _state.Stance = Stance.Stand;
+        _hasReleasedGrapplingButton = false;
+        _grappleInProgress = false;
+        _ropeExtending = false;
     }
 
     public void DrawRope()
     {
-        if (!_isGrappling) return;
-        _lineRenderer.SetPosition(0, grappleStart.position);
-        _lineRenderer.SetPosition(1, _grapplePoint);
+        if (!_requestedGrappling)
+        {
+            EndGrappleState();
+            return;
+        }
+
+        _lineRenderer.enabled = true;
+        _lineRenderer.positionCount = ropeSegments + 1;
+
+        Vector3 start = grappleStart.position;
+        Vector3 end = _grapplePoint;
+        float fullLength = Vector3.Distance(start, end);
+
+        // Extend rope length
+        if (_ropeExtending)
+        {
+            _currentRopeLength += ropeExtendSpeed * Time.deltaTime;
+            if (_currentRopeLength >= fullLength)
+            {
+                _currentRopeLength = fullLength;
+                _ropeExtending = false;
+                StartGrapplePull();
+            }
+        }
+
+        // Wave dir
+        float maxT = Mathf.Clamp01(_currentRopeLength / fullLength);
+        for (int i = 0; i <= ropeSegments; i++)
+        {
+            float t = (float)i / ropeSegments;
+            float useT = Mathf.Min(t, maxT); // Keeps rope within extended length
+            Vector3 point = Vector3.Lerp(start, end, useT);
+
+            // Animate wave only during extension
+            if (_ropeExtending && t < maxT)
+            {
+                float wave = Mathf.Sin((t * waveFrequency + Time.time * waveAnimSpeed) * Mathf.PI * 2f)
+                             * waveAmplitude * (1 - t);
+                float fadeFromStart = Mathf.SmoothStep(0f, .3f, t); // fade in from hand
+                point += _waveDirection * wave * fadeFromStart;
+            }
+            _lineRenderer.SetPosition(i, point);
+        }
+    }
+
+    private void StartGrapplePull()
+    {
+        // Now actually start pulling the player (grapple active now)
+        _isGrappling = true;
+        _state.Stance = Stance.Grapple;
     }
 
     private void StartDashState()
@@ -998,7 +1072,9 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     public float GetJumpsRemaining() => _remainingJumps;
     public float GetDashCurrentCooldown() => _dashCooldownRemaining;
     public float GetDashMaxCooldown() => dashCooldown;
-    public Vector3 GetGrapplePredictionHitPoint() => _predictionHit.point;
+    public bool GetIsGrappling() => _isGrappling;
+    public bool GetIsRopeExtending() => _ropeExtending;
+    public bool GetGrapplePredictionHitPoint() => _predictionHit.point != Vector3.zero && _hasReleasedGrapplingButton;
     public bool GetCanDash() => _state.Stance is not Stance.Slide
             && !(_state.Stance is Stance.Crouch && motor.GroundingStatus.IsStableOnGround)
             && !(_state.Stance is Stance.Grapple)
