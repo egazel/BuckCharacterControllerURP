@@ -3795,7 +3795,7 @@ MonoBehaviour:
   grappleReelSpeed: 35
   grappleGravityDamp: 0.6
   grapplePullWeight: 0.5
-  predictionSphereRadius: 2
+  predictionSphereRadius: 1.5
   _predictionPoint: {fileID: 370269965}
   ropeExtendSpeed: 100
   waveAmplitude: 5
@@ -3895,7 +3895,7 @@ LineRenderer:
   m_RenderingLayerMask: 257
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 212f43573a4754648abd6e4be374e148, type: 2}
+  - {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -3940,7 +3940,7 @@ LineRenderer:
     colorGradient:
       serializedVersion: 2
       key0: {r: 0, g: 0, b: 0, a: 1}
-      key1: {r: 0, g: 0, b: 0, a: 1}
+      key1: {r: 0.084905684, g: 0.084905684, b: 0.084905684, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
