@@ -93,7 +93,6 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [Range(0f, 1f)]
     [SerializeField] float grapplePullWeight = 0.5f;
     [SerializeField] float predictionSphereRadius = 1.5f;
-    [SerializeField] Transform _predictionPoint;
     [Space]
     [Header("Grappling Rope Anim")]
     [SerializeField] private float ropeExtendSpeed = 100f;
@@ -914,11 +913,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
 
     public void CheckGrapplePoints()
     {
-        if (_isGrappling)
-        {
-            _predictionPoint.gameObject.SetActive(false);
-            return;
-        }
+        if (_isGrappling) return;
 
         RaycastHit sphereCastHit;
         Physics.SphereCast(cameraTransform.position, predictionSphereRadius, cameraTransform.forward, out sphereCastHit, grappleMaxDistance, grappleLayerMask);
@@ -926,15 +921,6 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         RaycastHit hit;
         Physics.Raycast(cameraTransform.position, cameraTransform.forward, out hit, grappleMaxDistance, grappleLayerMask);
 
-        if(sphereCastHit.point != Vector3.zero && hit.point == Vector3.zero)
-        {
-            _predictionPoint.gameObject.SetActive(true);
-            _predictionPoint.position = sphereCastHit.point;
-        }
-        else
-        {
-            _predictionPoint.gameObject.SetActive(false);
-        }
         _predictionHit = hit.point == Vector3.zero ? sphereCastHit : hit;
     }
 
